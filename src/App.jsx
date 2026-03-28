@@ -158,11 +158,13 @@ export default function App() {
     }
   };
 
-  const startGame = () => { if (players.length < 1 || songPool.length < 1) return; setGameSongs(songPool.slice(0, numRounds)); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setPhase("listen"); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); setJustPlaced(null); setScreen("game"); };
+  const totalTurns = numRounds * (players.length || 1);
+  const startGame = () => { if (players.length < 1 || songPool.length < 1) return; setGameSongs(songPool.slice(0, totalTurns)); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setPhase("listen"); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); setJustPlaced(null); setScreen("game"); };
   const addPlayer = () => { const name = playerInput.trim(); if (name && players.length < 8 && !players.find(p => p.name === name)) { setPlayers([...players, { name, score: 0 }]); setPlayerInput(""); } };
   const removePlayer = (i) => setPlayers(players.filter((_, idx) => idx !== i));
 
-  const currentSong = gameSongs[currentRound] || {};
+  const turnIndex = currentRound * players.length + currentPlayerIdx;
+  const currentSong = gameSongs[turnIndex] || {};
   const currentPlayer = players[currentPlayerIdx] || {};
   const spotifyLink = `https://open.spotify.com/search/${encodeURIComponent(currentSong.song + " " + currentSong.artist)}`;
   const isFirstSong = timeline.length === 0;
@@ -174,7 +176,7 @@ export default function App() {
 
   const handleConfirmPlay = () => { if (!canConfirmPlay()) return; const tlOk = isFirstSong ? true : checkSlotCorrect(selectedSlot); setTimelineCorrect(tlOk); const pts = calcPoints(tlOk, songCorrect, artistCorrect); setRoundPts(pts); const up = [...players]; up[currentPlayerIdx].score += pts; setPlayers(up); setTimeline(prev => [...prev, { ...currentSong, justAdded: true }]); setJustPlaced(currentSong.id); setPhase("result"); };
 
-  const nextTurn = () => { setTimeline(prev => prev.map(s => ({ ...s, justAdded: false }))); setJustPlaced(null); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); let np = currentPlayerIdx + 1, nr = currentRound; if (np >= players.length) { np = 0; nr++; } if (nr >= gameSongs.length) { setScreen("results"); } else { setCurrentRound(nr); setCurrentPlayerIdx(np); setPhase("listen"); } };
+  const nextTurn = () => { setTimeline(prev => prev.map(s => ({ ...s, justAdded: false }))); setJustPlaced(null); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); let np = currentPlayerIdx + 1, nr = currentRound; if (np >= players.length) { np = 0; nr++; } if (nr >= numRounds) { setScreen("results"); } else { setCurrentRound(nr); setCurrentPlayerIdx(np); setPhase("listen"); } };
   const resetGame = () => { setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setScreen("config"); };
 
   const h1 = animPhase % 360, h2 = (animPhase + 120) % 360;
@@ -267,7 +269,8 @@ export default function App() {
   }
 
   if (screen === "home") {
-    const maxRounds = Math.min(songPool.length, 20);
+    const playersCount = Math.max(players.length, 1);
+    const maxRounds = Math.min(Math.floor(songPool.length / playersCount), 20);
     const roundOptions = [5, 10, 15, 20].filter(n => n <= maxRounds);
     if (roundOptions.length > 0 && !roundOptions.includes(numRounds)) {
       const closest = roundOptions.reduce((a, b) => Math.abs(b - numRounds) < Math.abs(a - numRounds) ? b : a);
@@ -362,7 +365,7 @@ export default function App() {
     );
   }
 
-  const pct = ((currentRound * players.length + currentPlayerIdx) / (gameSongs.length * players.length)) * 100;
+  const pct = ((turnIndex + 1) / (numRounds * players.length)) * 100;
 
   return (
     <div style={S.app}><div style={S.glow} /><style>{css}</style><FloatingScoreBtn />
@@ -480,7 +483,7 @@ export default function App() {
                 })}
               </div>
             </div>
-            <div style={{ textAlign: "center" }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={nextTurn}>{currentRound >= gameSongs.length - 1 && currentPlayerIdx >= players.length - 1 ? "🏆 Ver Resultados" : "Siguiente Turno →"}</button></div>
+            <div style={{ textAlign: "center" }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={nextTurn}>{currentRound >= numRounds - 1 && currentPlayerIdx >= players.length - 1 ? "🏆 Ver Resultados" : "Siguiente Turno →"}</button></div>
           </div>
         )}
       </div>
