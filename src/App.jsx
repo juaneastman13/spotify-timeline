@@ -23,7 +23,7 @@ const formatScore = (sixths) => {
   return `${whole} ${f[rem]}`;
 };
 
-const generateSongs = async (genres, continents, artists, count = 60) => {
+const generateSongs = async (genres, continents, artists, count = 150) => {
   const artistInstruction = artists.trim()
     ? `Aproximadamente el 20% de las canciones (unas ${Math.round(count * 0.2)}) DEBEN ser de estos artistas: ${artists}. El 80% restante deben ser de artistas variados y conocidos de los géneros y regiones indicadas.`
     : "Usar artistas variados y conocidos de cada género y región.";
@@ -38,12 +38,10 @@ Requisitos:
 - Solo canciones MUY conocidas y populares que la gente pueda reconocer
 - Distribuir equitativamente entre los géneros y continentes seleccionados
 - No repetir artistas más de 3 veces
-- El trackId DEBE ser el ID real de Spotify (22 caracteres alfanuméricos que aparece en la URL de open.spotify.com/track/XXXXX)
 
 Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin texto adicional. Cada objeto debe tener exactamente esta estructura:
 [
   {
-    "trackId": "ID_REAL_DE_SPOTIFY_22_CHARS",
     "song": "Nombre de la canción",
     "artist": "Nombre del artista",
     "year": 1985,
@@ -76,9 +74,9 @@ Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin t
   const cleaned = text.replace(/```json|```/g, "").trim();
   const parsed = JSON.parse(cleaned);
 
-  return parsed.filter(
-    (s) => s && typeof s.trackId === "string" && typeof s.song === "string" && typeof s.artist === "string" && typeof s.year === "number"
-  );
+  return parsed
+    .filter((s) => s && typeof s.song === "string" && typeof s.artist === "string" && typeof s.year === "number")
+    .map((s, i) => ({ ...s, id: `${i}-${s.song.replace(/\s/g, "")}` }));
 };
 
 const G = "#1DB954", GL = "#1ed760", DARK = "#0a0a0f";
@@ -166,7 +164,7 @@ export default function App() {
 
   const currentSong = gameSongs[currentRound] || {};
   const currentPlayer = players[currentPlayerIdx] || {};
-  const spotifyLink = `https://open.spotify.com/track/${currentSong.trackId}`;
+  const spotifyLink = `https://open.spotify.com/search/${encodeURIComponent(currentSong.song + " " + currentSong.artist)}`;
   const isFirstSong = timeline.length === 0;
   const sortedTimeline = [...timeline].sort((a, b) => a.year - b.year);
 
@@ -174,7 +172,7 @@ export default function App() {
   const calcPoints = (tlOk, sOk, aOk) => { if (!tlOk) return 0; return 6 + (sOk ? 1 : 0) + (aOk ? 1 : 0); };
   const canConfirmPlay = () => { if (songCorrect === null || artistCorrect === null) return false; if (!isFirstSong && selectedSlot === null) return false; return true; };
 
-  const handleConfirmPlay = () => { if (!canConfirmPlay()) return; const tlOk = isFirstSong ? true : checkSlotCorrect(selectedSlot); setTimelineCorrect(tlOk); const pts = calcPoints(tlOk, songCorrect, artistCorrect); setRoundPts(pts); const up = [...players]; up[currentPlayerIdx].score += pts; setPlayers(up); setTimeline(prev => [...prev, { ...currentSong, justAdded: true }]); setJustPlaced(currentSong.trackId); setPhase("result"); };
+  const handleConfirmPlay = () => { if (!canConfirmPlay()) return; const tlOk = isFirstSong ? true : checkSlotCorrect(selectedSlot); setTimelineCorrect(tlOk); const pts = calcPoints(tlOk, songCorrect, artistCorrect); setRoundPts(pts); const up = [...players]; up[currentPlayerIdx].score += pts; setPlayers(up); setTimeline(prev => [...prev, { ...currentSong, justAdded: true }]); setJustPlaced(currentSong.id); setPhase("result"); };
 
   const nextTurn = () => { setTimeline(prev => prev.map(s => ({ ...s, justAdded: false }))); setJustPlaced(null); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); let np = currentPlayerIdx + 1, nr = currentRound; if (np >= players.length) { np = 0; nr++; } if (nr >= gameSongs.length) { setScreen("results"); } else { setCurrentRound(nr); setCurrentPlayerIdx(np); setPhase("listen"); } };
   const resetGame = () => { setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setScreen("config"); };
@@ -423,7 +421,7 @@ export default function App() {
                       {selectedSlot === 0 ? "▶ Aquí (antes de todo)" : "↑ Antes de todo"}
                     </button>
                     {sortedTimeline.map((s, i) => (
-                      <div key={s.trackId}>
+                      <div key={s.id}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", position: "relative" }}>
                           <div style={{ position: "absolute", left: -18, width: 10, height: 10, borderRadius: "50%", background: G, border: `2px solid ${DARK}` }} />
                           <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums" }}>{s.year}</span>
@@ -469,9 +467,9 @@ export default function App() {
               <div style={{ position: "relative", paddingLeft: 24 }}>
                 <div style={{ position: "absolute", left: 12, top: 0, bottom: 0, width: 2, background: `linear-gradient(180deg,${G},rgba(29,185,84,.15))` }} />
                 {[...timeline].sort((a, b) => a.year - b.year).map((s, i) => {
-                  const isNew = s.trackId === justPlaced;
+                  const isNew = s.id === justPlaced;
                   return (
-                    <div key={s.trackId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", position: "relative", background: isNew ? "rgba(29,185,84,.1)" : "transparent", borderRadius: 8, animation: isNew ? "highlightPulse 1.5s ease 2" : `slideIn .3s ${i * .05}s both`, border: isNew ? "1px solid rgba(29,185,84,.25)" : "1px solid transparent", marginBottom: 2 }}>
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", position: "relative", background: isNew ? "rgba(29,185,84,.1)" : "transparent", borderRadius: 8, animation: isNew ? "highlightPulse 1.5s ease 2" : `slideIn .3s ${i * .05}s both`, border: isNew ? "1px solid rgba(29,185,84,.25)" : "1px solid transparent", marginBottom: 2 }}>
                       <div style={{ position: "absolute", left: -18, width: 10, height: 10, borderRadius: "50%", background: isNew ? "#fff" : G, border: `2px solid ${DARK}`, boxShadow: isNew ? `0 0 8px ${G}` : "none" }} />
                       <span style={{ fontWeight: 800, fontSize: 13, color: isNew ? "#fff" : GL, minWidth: 36, fontVariantNumeric: "tabular-nums" }}>{s.year}</span>
                       <span style={{ fontSize: 12, color: isNew ? "#fff" : "#ccc", fontWeight: isNew ? 700 : 400 }}>{s.song}</span>
