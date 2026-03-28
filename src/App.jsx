@@ -91,13 +91,16 @@ Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin t
 
 const G = "#1DB954", GL = "#1ed760", DARK = "#0a0a0f";
 
-const tap = (fn) => {
-  let touched = false;
-  return {
-    onTouchEnd: (e) => { e.preventDefault(); touched = true; fn(e); },
-    onClick: (e) => { if (!touched) fn(e); touched = false; },
-  };
-};
+const tap = (fn) => ({
+  onPointerDown: (e) => { if (e.button && e.button !== 0) return; e.currentTarget.dataset.px = e.clientX; e.currentTarget.dataset.py = e.clientY; },
+  onPointerUp: (e) => {
+    if (e.button && e.button !== 0) return;
+    const dx = Math.abs(e.clientX - (parseFloat(e.currentTarget.dataset.px) || 0));
+    const dy = Math.abs(e.clientY - (parseFloat(e.currentTarget.dataset.py) || 0));
+    if (dx < 15 && dy < 15) fn(e);
+  },
+  onClick: (e) => { e.preventDefault(); },
+});
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
