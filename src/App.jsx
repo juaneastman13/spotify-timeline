@@ -183,6 +183,8 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [genError, setGenError] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [bgLoading, setBgLoading] = useState(false);
+  const bgAbort = useRef(false);
 
   useEffect(() => { const iv = setInterval(() => setAnimPhase(p => (p + 1) % 360), 60); return () => clearInterval(iv); }, []);
   useEffect(() => { if (!loading) return; let i = 0; const iv = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; setLoadingMsg(LOADING_MSGS[i]); }, 2500); return () => clearInterval(iv); }, [loading]);
@@ -195,6 +197,42 @@ export default function App() {
   const toggleGenre = (g) => setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   const toggleContinent = (c) => setSelectedContinents(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
+  const dedupeAndIndex = (songs) => {
+    const seen = new Set();
+    return songs.filter(s => {
+      const key = `${s.song}|||${s.artist}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).map((s, i) => ({ ...s, id: `${i}-${s.song.replace(/\s/g, "")}` }));
+  };
+
+  const fetchMoreInBackground = async (initial, genres, continents, artists) => {
+    bgAbort.current = false;
+    setBgLoading(true);
+    let accumulated = [...initial];
+    const target = 150;
+    for (let attempt = 0; attempt < 4 && accumulated.length < target; attempt++) {
+      if (bgAbort.current) break;
+      try {
+        const need = target - accumulated.length;
+        const batch = await fetchSongBatch(genres, continents, artists, need, accumulated);
+        const existing = new Set(accumulated.map(s => `${s.song}|||${s.artist}`.toLowerCase()));
+        const unique = batch.filter(s => {
+          const key = `${s.song}|||${s.artist}`.toLowerCase();
+          if (existing.has(key)) return false;
+          existing.add(key);
+          return true;
+        });
+        accumulated = [...accumulated, ...unique];
+        const indexed = dedupeAndIndex(accumulated);
+        const shuffled = shuffle(indexed);
+        setSongPool(shuffled);
+      } catch { break; }
+    }
+    setBgLoading(false);
+  };
+
   const handleGenerate = async () => {
     if (selectedGenres.length < 1 || selectedContinents.length < 1) return;
     setLoading(true);
@@ -202,30 +240,15 @@ export default function App() {
     setLoadingProgress(0);
     setScreen("loading");
     try {
-      let allSongs = [];
-      const target = 150;
-      for (let attempt = 0; attempt < 5 && allSongs.length < target; attempt++) {
-        const need = target - allSongs.length;
-        const batch = await fetchSongBatch(selectedGenres, selectedContinents, artistFilter, need, allSongs);
-        const existing = new Set(allSongs.map(s => `${s.song}|||${s.artist}`.toLowerCase()));
-        const unique = batch.filter(s => {
-          const key = `${s.song}|||${s.artist}`.toLowerCase();
-          if (existing.has(key)) return false;
-          existing.add(key);
-          return true;
-        });
-        allSongs = [...allSongs, ...unique];
-        setLoadingProgress(allSongs.length);
-        if (allSongs.length >= target) break;
-      }
-      if (allSongs.length === 0) throw new Error("No se generaron canciones válidas.");
-      const indexed = allSongs.map((s, i) => ({ ...s, id: `${i}-${s.song.replace(/\s/g, "")}` }));
+      const batch = await fetchSongBatch(selectedGenres, selectedContinents, artistFilter, 60, []);
+      if (batch.length === 0) throw new Error("No se generaron canciones válidas.");
+      const indexed = dedupeAndIndex(batch);
       const shuffled = shuffle(indexed);
       setSongPool(shuffled);
       setNextPoolIdx(0);
-      const maxAvail = shuffled.length;
-      if (numRounds > maxAvail) setNumRounds(maxAvail);
+      setLoadingProgress(shuffled.length);
       setScreen("home");
+      fetchMoreInBackground(batch, selectedGenres, selectedContinents, artistFilter);
     } catch (err) {
       setGenError(err.message || "Error desconocido");
       setScreen("config");
@@ -284,7 +307,7 @@ export default function App() {
 
   const nextTurn = () => { setTimeline(prev => prev.map(s => ({ ...s, justAdded: false }))); setJustPlaced(null); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); let np = currentPlayerIdx + 1, nr = currentRound; if (np >= players.length) { np = 0; nr++; } if (nr >= numRounds) { setScreen("results"); } else { setCurrentRound(nr); setCurrentPlayerIdx(np); setPhase("listen"); } };
 
-  const resetGame = () => { clearSession(); setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setGameSongs([]); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setNextPoolIdx(0); setPhase("listen"); setShowResetConfirm(false); setScreen("config"); };
+  const resetGame = () => { bgAbort.current = true; clearSession(); setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setGameSongs([]); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setNextPoolIdx(0); setPhase("listen"); setShowResetConfirm(false); setBgLoading(false); setScreen("config"); };
   const handleResetClick = () => setShowResetConfirm(true);
 
   const h1 = animPhase % 360, h2 = (animPhase + 120) % 360;
@@ -381,12 +404,7 @@ export default function App() {
             ))}
           </div>
           <p style={{ fontSize: 18, fontWeight: 700, color: GL, marginBottom: 8, animation: "fadeIn .4s both" }}>{loadingMsg}</p>
-          <p style={{ fontSize: 15, color: "#999", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>Generando canciones... {loadingProgress}/150</p>
-          {loadingProgress > 0 && (
-            <div style={{ width: "80%", maxWidth: 300, height: 4, background: "rgba(255,255,255,.08)", borderRadius: 2, marginTop: 12, overflow: "hidden" }}>
-              <div style={{ width: `${(loadingProgress / 150) * 100}%`, height: "100%", background: `linear-gradient(90deg,${G},${GL})`, transition: "width .4s" }} />
-            </div>
-          )}
+          <p style={{ fontSize: 13, color: "#666" }}>Generando playlist inicial...</p>
         </div>
       </div>
     );
@@ -409,8 +427,9 @@ export default function App() {
           <p style={{ textAlign: "center", fontSize: "clamp(.8rem,2.2vw,1rem)", color: "#777", marginBottom: 16, fontWeight: 400, letterSpacing: ".15em", textTransform: "uppercase" }}>Escuchá · Adiviná · Ubicá en el tiempo</p>
 
           <div style={{ textAlign: "center", padding: "12px 18px", background: "rgba(29,185,84,.08)", border: "1px solid rgba(29,185,84,.2)", borderRadius: 12, marginBottom: 24, animation: "fadeIn .4s both" }}>
-            <p style={{ margin: 0, fontSize: 14, color: GL, fontWeight: 600 }}>🎵 {songPool.length} canciones generadas</p>
+            <p style={{ margin: 0, fontSize: 14, color: GL, fontWeight: 600 }}>🎵 {songPool.length} canciones {bgLoading ? "y cargando más..." : "listas"}</p>
             <p style={{ margin: "4px 0 0", fontSize: 12, color: "#888" }}>{selectedGenres.join(", ")} · {selectedContinents.join(", ")}</p>
+            {bgLoading && <div style={{ width: "100%", height: 3, background: "rgba(255,255,255,.06)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}><div style={{ width: `${(songPool.length / 150) * 100}%`, height: "100%", background: `linear-gradient(90deg,${G},${GL})`, transition: "width .5s" }} /></div>}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10, marginBottom: 24 }}>
