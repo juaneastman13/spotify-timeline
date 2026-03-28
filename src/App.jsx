@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 const GENRES = ["Pop", "Rock", "Hip Hop / Rap", "R&B / Soul", "Reggaeton / Latino", "Electrónica / Dance", "Country", "Jazz / Blues", "Metal", "Indie / Alternativo", "Funk / Disco", "Clásicos / Oldies", "Cumbia", "Trap", "Folklore Uruguayo", "Cumbia del Interior Uruguaya"];
-const CONTINENTS = ["Norteamérica", "Latinoamérica", "Europa", "Asia", "África", "Oceanía"];
+const CONTINENTS = ["Norteamérica", "Latinoamérica", "Europa", "Asia", "África", "Oceanía", "Uruguay", "Argentina"];
 const LOADING_MSGS = ["Buscando hits de los 80s...", "Armando tu playlist...", "Mezclando géneros...", "Casi listo...", "Explorando vinilos...", "Consultando las listas de éxitos...", "Descubriendo clásicos...", "Preparando la fiesta..."];
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 const SESSION_KEY = "st_session";
@@ -42,14 +42,14 @@ const fetchSongBatch = async (genres, continents, artists, count, exclude) => {
 
   const prompt = `Generá una lista de exactamente ${count} canciones populares y conocidas que cumplan estos criterios:
 - Géneros: ${genres.join(", ")}
-- Regiones/continentes de origen del artista: ${continents.join(", ")}
+- Regiones/continentes/países de origen del artista: ${continents.join(", ")}
 ${artistInstruction}
 ${excludeInstruction}
 
 Requisitos:
 - Canciones de distintas décadas (1950s a 2020s), buena variedad temporal
 - Solo canciones MUY conocidas y populares que la gente pueda reconocer
-- Distribuir equitativamente entre los géneros y continentes seleccionados
+- Distribuir equitativamente entre los géneros y regiones/países seleccionados
 - No repetir artistas más de 3 veces
 
 Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin texto adicional. Cada objeto debe tener exactamente esta estructura:
@@ -369,7 +369,7 @@ export default function App() {
           </div>
 
           <div style={S.card}>
-            <span style={S.label}>Continentes (mínimo 1)</span>
+            <span style={S.label}>Continentes / Países (mínimo 1)</span>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
               {CONTINENTS.map(c => (
                 <button key={c} onClick={() => toggleContinent(c)} style={S.toggle(selectedContinents.includes(c))}>
