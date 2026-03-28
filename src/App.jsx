@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const GENRES = ["Pop", "Rock", "Hip Hop / Rap", "R&B / Soul", "Reggaeton / Latino", "Electrónica / Dance", "Country", "Jazz / Blues", "Metal", "Indie / Alternativo", "Funk / Disco", "Clásicos / Oldies"];
+const GENRES = ["Pop", "Rock", "Hip Hop / Rap", "R&B / Soul", "Reggaeton / Latino", "Electrónica / Dance", "Country", "Jazz / Blues", "Metal", "Indie / Alternativo", "Funk / Disco", "Clásicos / Oldies", "Cumbia", "Trap", "Folklore Uruguayo", "Cumbia del Interior Uruguaya"];
 const CONTINENTS = ["Norteamérica", "Latinoamérica", "Europa", "Asia", "África", "Oceanía"];
 const LOADING_MSGS = ["Buscando hits de los 80s...", "Armando tu playlist...", "Mezclando géneros...", "Casi listo...", "Explorando vinilos...", "Consultando las listas de éxitos...", "Descubriendo clásicos...", "Preparando la fiesta..."];
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
