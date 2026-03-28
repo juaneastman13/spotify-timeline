@@ -4,6 +4,9 @@ const GENRES = ["Pop", "Rock", "Hip Hop / Rap", "R&B / Soul", "Reggaeton / Latin
 const CONTINENTS = ["Norteamérica", "Latinoamérica", "Europa", "Asia", "África", "Oceanía"];
 const LOADING_MSGS = ["Buscando hits de los 80s...", "Armando tu playlist...", "Mezclando géneros...", "Casi listo...", "Explorando vinilos...", "Consultando las listas de éxitos...", "Descubriendo clásicos...", "Preparando la fiesta..."];
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
+const SESSION_KEY = "st_session";
+const SESSION_TS_KEY = "st_session_ts";
+const SESSION_TTL = 7200000;
 
 const shuffle = (a) => {
   const b = [...a];
@@ -23,15 +26,25 @@ const formatScore = (sixths) => {
   return `${whole} ${f[rem]}`;
 };
 
-const generateSongs = async (genres, continents, artists, count = 150) => {
+const validateSong = (s) =>
+  s && typeof s.song === "string" && s.song.length > 0 &&
+  typeof s.artist === "string" && s.artist.length > 0 &&
+  typeof s.year === "number" && s.year >= 1950 && s.year <= 2025;
+
+const fetchSongBatch = async (genres, continents, artists, count, exclude) => {
   const artistInstruction = artists.trim()
     ? `Aproximadamente el 20% de las canciones (unas ${Math.round(count * 0.2)}) DEBEN ser de estos artistas: ${artists}. El 80% restante deben ser de artistas variados y conocidos de los géneros y regiones indicadas.`
     : "Usar artistas variados y conocidos de cada género y región.";
+
+  const excludeInstruction = exclude.length > 0
+    ? `\nNO repitas estas canciones que ya fueron generadas:\n${exclude.map(s => `- "${s.song}" de ${s.artist}`).join("\n")}`
+    : "";
 
   const prompt = `Generá una lista de exactamente ${count} canciones populares y conocidas que cumplan estos criterios:
 - Géneros: ${genres.join(", ")}
 - Regiones/continentes de origen del artista: ${continents.join(", ")}
 ${artistInstruction}
+${excludeInstruction}
 
 Requisitos:
 - Canciones de distintas décadas (1950s a 2020s), buena variedad temporal
@@ -59,7 +72,7 @@ Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin t
     body: JSON.stringify({
       model: "gpt-4o-mini",
       max_tokens: 16000,
-      temperature: 0.8,
+      temperature: 0.9,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -73,13 +86,25 @@ Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin t
   const text = data.choices[0].message.content;
   const cleaned = text.replace(/```json|```/g, "").trim();
   const parsed = JSON.parse(cleaned);
-
-  return parsed
-    .filter((s) => s && typeof s.song === "string" && typeof s.artist === "string" && typeof s.year === "number")
-    .map((s, i) => ({ ...s, id: `${i}-${s.song.replace(/\s/g, "")}` }));
+  return parsed.filter(validateSong);
 };
 
 const G = "#1DB954", GL = "#1ed760", DARK = "#0a0a0f";
+
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onCancel}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)" }} />
+      <div style={{ position: "relative", background: "#141418", border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+        <p style={{ margin: "0 0 24px", fontSize: 15, color: "#ccc", lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, color: "#aaa", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Cancelar</button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "#ff4757", border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Sí, reiniciar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ScoreboardModal({ players, onClose }) {
   const sorted = [...players].sort((a, b) => b.score - a.score);
@@ -105,16 +130,40 @@ function ScoreboardModal({ players, onClose }) {
   );
 }
 
+function loadSession() {
+  try {
+    const ts = parseInt(localStorage.getItem(SESSION_TS_KEY), 10);
+    if (!ts || Date.now() - ts >= SESSION_TTL) { clearSession(); return null; }
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { clearSession(); return null; }
+}
+
+function saveSession(state) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(state));
+    if (!localStorage.getItem(SESSION_TS_KEY)) localStorage.setItem(SESSION_TS_KEY, String(Date.now()));
+  } catch {}
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_TS_KEY);
+}
+
 export default function App() {
-  const [screen, setScreen] = useState("config");
-  const [players, setPlayers] = useState([]);
+  const saved = useRef(loadSession());
+
+  const [screen, setScreen] = useState(saved.current ? saved.current.screen : "config");
+  const [players, setPlayers] = useState(saved.current ? saved.current.players : []);
   const [playerInput, setPlayerInput] = useState("");
-  const [numRounds, setNumRounds] = useState(10);
-  const [gameSongs, setGameSongs] = useState([]);
-  const [timeline, setTimeline] = useState([]);
-  const [currentRound, setCurrentRound] = useState(0);
-  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
-  const [phase, setPhase] = useState("listen");
+  const [numRounds, setNumRounds] = useState(saved.current ? saved.current.numRounds : 10);
+  const [gameSongs, setGameSongs] = useState(saved.current ? saved.current.gameSongs : []);
+  const [timeline, setTimeline] = useState(saved.current ? saved.current.timeline : []);
+  const [currentRound, setCurrentRound] = useState(saved.current ? saved.current.currentRound : 0);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(saved.current ? saved.current.currentPlayerIdx : 0);
+  const [phase, setPhase] = useState(saved.current ? saved.current.phase : "listen");
   const [songCorrect, setSongCorrect] = useState(null);
   const [artistCorrect, setArtistCorrect] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -124,16 +173,24 @@ export default function App() {
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [animPhase, setAnimPhase] = useState(0);
 
-  const [selectedGenres, setSelectedGenres] = useState([]);
-  const [selectedContinents, setSelectedContinents] = useState([]);
-  const [artistFilter, setArtistFilter] = useState("");
-  const [songPool, setSongPool] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState(saved.current ? saved.current.selectedGenres : []);
+  const [selectedContinents, setSelectedContinents] = useState(saved.current ? saved.current.selectedContinents : []);
+  const [artistFilter, setArtistFilter] = useState(saved.current ? saved.current.artistFilter : "");
+  const [songPool, setSongPool] = useState(saved.current ? saved.current.songPool : []);
+  const [nextPoolIdx, setNextPoolIdx] = useState(saved.current ? saved.current.nextPoolIdx : 0);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS[0]);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [genError, setGenError] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => { const iv = setInterval(() => setAnimPhase(p => (p + 1) % 360), 60); return () => clearInterval(iv); }, []);
   useEffect(() => { if (!loading) return; let i = 0; const iv = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; setLoadingMsg(LOADING_MSGS[i]); }, 2500); return () => clearInterval(iv); }, [loading]);
+
+  useEffect(() => {
+    if (screen === "config" || screen === "loading") return;
+    saveSession({ screen, players, numRounds, gameSongs, timeline, currentRound, currentPlayerIdx, phase, songPool, nextPoolIdx, selectedGenres, selectedContinents, artistFilter });
+  }, [screen, players, numRounds, gameSongs, timeline, currentRound, currentPlayerIdx, phase, songPool, nextPoolIdx]);
 
   const toggleGenre = (g) => setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   const toggleContinent = (c) => setSelectedContinents(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
@@ -142,12 +199,31 @@ export default function App() {
     if (selectedGenres.length < 1 || selectedContinents.length < 1) return;
     setLoading(true);
     setGenError(null);
+    setLoadingProgress(0);
     setScreen("loading");
     try {
-      const songs = await generateSongs(selectedGenres, selectedContinents, artistFilter);
-      if (songs.length === 0) throw new Error("No se generaron canciones válidas.");
-      setSongPool(shuffle(songs));
-      const maxAvail = songs.length;
+      let allSongs = [];
+      const target = 150;
+      for (let attempt = 0; attempt < 5 && allSongs.length < target; attempt++) {
+        const need = target - allSongs.length;
+        const batch = await fetchSongBatch(selectedGenres, selectedContinents, artistFilter, need, allSongs);
+        const existing = new Set(allSongs.map(s => `${s.song}|||${s.artist}`.toLowerCase()));
+        const unique = batch.filter(s => {
+          const key = `${s.song}|||${s.artist}`.toLowerCase();
+          if (existing.has(key)) return false;
+          existing.add(key);
+          return true;
+        });
+        allSongs = [...allSongs, ...unique];
+        setLoadingProgress(allSongs.length);
+        if (allSongs.length >= target) break;
+      }
+      if (allSongs.length === 0) throw new Error("No se generaron canciones válidas.");
+      const indexed = allSongs.map((s, i) => ({ ...s, id: `${i}-${s.song.replace(/\s/g, "")}` }));
+      const shuffled = shuffle(indexed);
+      setSongPool(shuffled);
+      setNextPoolIdx(0);
+      const maxAvail = shuffled.length;
       if (numRounds > maxAvail) setNumRounds(maxAvail);
       setScreen("home");
     } catch (err) {
@@ -159,18 +235,46 @@ export default function App() {
   };
 
   const totalTurns = numRounds * (players.length || 1);
-  const startGame = () => { if (players.length < 1 || songPool.length < 1) return; setGameSongs(songPool.slice(0, totalTurns)); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setPhase("listen"); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); setJustPlaced(null); setScreen("game"); };
+  const startGame = () => {
+    if (players.length < 1 || songPool.length < 1) return;
+    const songs = songPool.slice(0, totalTurns);
+    setGameSongs(songs);
+    setNextPoolIdx(totalTurns);
+    setTimeline([]);
+    setCurrentRound(0);
+    setCurrentPlayerIdx(0);
+    setPhase("listen");
+    setSongCorrect(null);
+    setArtistCorrect(null);
+    setSelectedSlot(null);
+    setTimelineCorrect(null);
+    setRoundPts(0);
+    setJustPlaced(null);
+    setScreen("game");
+    localStorage.setItem(SESSION_TS_KEY, String(Date.now()));
+  };
+
   const addPlayer = () => { const name = playerInput.trim(); if (name && players.length < 8 && !players.find(p => p.name === name)) { setPlayers([...players, { name, score: 0 }]); setPlayerInput(""); } };
   const removePlayer = (i) => setPlayers(players.filter((_, idx) => idx !== i));
 
   const turnIndex = currentRound * players.length + currentPlayerIdx;
   const currentSong = gameSongs[turnIndex] || {};
   const currentPlayer = players[currentPlayerIdx] || {};
-  const spotifyQuery = encodeURIComponent(currentSong.song + " " + currentSong.artist);
+  const spotifyQuery = encodeURIComponent((currentSong.song || "") + " " + (currentSong.artist || ""));
   const spotifyLink = `https://open.spotify.com/search/${spotifyQuery}`;
   const openSpotify = (e) => { e.preventDefault(); window.location.href = `spotify:search:${spotifyQuery}`; setTimeout(() => { window.open(spotifyLink, "_blank"); }, 800); };
   const isFirstSong = timeline.length === 0;
   const sortedTimeline = [...timeline].sort((a, b) => a.year - b.year);
+
+  const canSkipSong = nextPoolIdx < songPool.length;
+  const handleSkipSong = () => {
+    if (!canSkipSong) return;
+    const replacement = songPool[nextPoolIdx];
+    const newGameSongs = [...gameSongs];
+    newGameSongs[turnIndex] = replacement;
+    setGameSongs(newGameSongs);
+    setNextPoolIdx(nextPoolIdx + 1);
+  };
 
   const checkSlotCorrect = (slotIndex) => { const year = currentSong.year; if (sortedTimeline.length === 0) return true; const leftYear = slotIndex > 0 ? sortedTimeline[slotIndex - 1].year : -Infinity; const rightYear = slotIndex < sortedTimeline.length ? sortedTimeline[slotIndex].year : Infinity; return year >= leftYear && year <= rightYear; };
   const calcPoints = (tlOk, sOk, aOk) => { if (!tlOk) return 0; return 6 + (sOk ? 1 : 0) + (aOk ? 1 : 0); };
@@ -179,7 +283,9 @@ export default function App() {
   const handleConfirmPlay = () => { if (!canConfirmPlay()) return; const tlOk = isFirstSong ? true : checkSlotCorrect(selectedSlot); setTimelineCorrect(tlOk); const pts = calcPoints(tlOk, songCorrect, artistCorrect); setRoundPts(pts); const up = [...players]; up[currentPlayerIdx].score += pts; setPlayers(up); setTimeline(prev => [...prev, { ...currentSong, justAdded: true }]); setJustPlaced(currentSong.id); setPhase("result"); };
 
   const nextTurn = () => { setTimeline(prev => prev.map(s => ({ ...s, justAdded: false }))); setJustPlaced(null); setSongCorrect(null); setArtistCorrect(null); setSelectedSlot(null); setTimelineCorrect(null); setRoundPts(0); let np = currentPlayerIdx + 1, nr = currentRound; if (np >= players.length) { np = 0; nr++; } if (nr >= numRounds) { setScreen("results"); } else { setCurrentRound(nr); setCurrentPlayerIdx(np); setPhase("listen"); } };
-  const resetGame = () => { setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setScreen("config"); };
+
+  const resetGame = () => { clearSession(); setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setGameSongs([]); setTimeline([]); setCurrentRound(0); setCurrentPlayerIdx(0); setNextPoolIdx(0); setPhase("listen"); setShowResetConfirm(false); setScreen("config"); };
+  const handleResetClick = () => setShowResetConfirm(true);
 
   const h1 = animPhase % 360, h2 = (animPhase + 120) % 360;
   const css = `@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(29,185,84,.3)}50%{box-shadow:0 0 32px rgba(29,185,84,.5)}}@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}@keyframes highlightPulse{0%,100%{background:rgba(29,185,84,.15)}50%{background:rgba(29,185,84,.3)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes barBounce{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}input:focus{border-color:${G}!important}button,a{-webkit-user-select:none;user-select:none}::selection{background:${G};color:#000}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation;cursor:pointer}input{touch-action:manipulation}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}`;
@@ -195,11 +301,22 @@ export default function App() {
     btnO: (active, color) => ({ padding: "12px 20px", minHeight: 44, background: active ? `${color}22` : "rgba(255,255,255,.04)", color: active ? color : "#666", border: `2px solid ${active ? color : "rgba(255,255,255,.1)"}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all .15s", WebkitAppearance: "none" }),
     chip: { display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", minHeight: 40, background: "rgba(29,185,84,.1)", border: "1px solid rgba(29,185,84,.25)", borderRadius: 50, margin: 4, fontSize: 14, fontWeight: 600 },
     tag: (ok) => ({ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 50, fontSize: 12, fontWeight: 700, background: ok ? "rgba(29,185,84,.15)" : "rgba(255,71,87,.15)", color: ok ? GL : "#ff6b81", border: `1px solid ${ok ? "rgba(29,185,84,.3)" : "rgba(255,71,87,.3)"}` }),
-    fab: { position: "fixed", bottom: 20, right: 20, zIndex: 900, width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg,${G},${GL})`, color: "#000", border: "none", fontSize: 22, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,185,84,.4)", WebkitAppearance: "none" },
+    fab: { position: "fixed", bottom: 20, zIndex: 900, width: 56, height: 56, borderRadius: "50%", border: "none", fontSize: 22, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", WebkitAppearance: "none" },
     toggle: (active) => ({ padding: "10px 16px", minHeight: 44, background: active ? "rgba(29,185,84,.18)" : "rgba(255,255,255,.04)", color: active ? GL : "#777", border: `1.5px solid ${active ? G : "rgba(255,255,255,.1)"}`, borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s", margin: 3, WebkitAppearance: "none" }),
   };
 
-  const FloatingScoreBtn = () => (<>{screen !== "home" && screen !== "config" && screen !== "loading" && <button style={S.fab} onClick={() => setShowScoreboard(true)}>🏆</button>}{showScoreboard && <ScoreboardModal players={players} onClose={() => setShowScoreboard(false)} />}</>);
+  const FloatingBtns = () => (
+    <>
+      {screen !== "home" && screen !== "config" && screen !== "loading" && (
+        <>
+          <button style={{ ...S.fab, right: 20, background: `linear-gradient(135deg,${G},${GL})`, color: "#000", boxShadow: "0 4px 20px rgba(29,185,84,.4)" }} onClick={() => setShowScoreboard(true)}>🏆</button>
+          <button style={{ ...S.fab, right: 84, background: "rgba(255,255,255,.08)", color: "#aaa", boxShadow: "0 2px 12px rgba(0,0,0,.3)", border: "1px solid rgba(255,255,255,.1)" }} onClick={handleResetClick}>🔄</button>
+        </>
+      )}
+      {showScoreboard && <ScoreboardModal players={players} onClose={() => setShowScoreboard(false)} />}
+      {showResetConfirm && <ConfirmModal message="¿Reiniciar juego? Se perderán todos los puntajes y progreso." onConfirm={resetGame} onCancel={() => setShowResetConfirm(false)} />}
+    </>
+  );
 
   if (screen === "config") {
     const canGenerate = selectedGenres.length >= 1 && selectedContinents.length >= 1;
@@ -264,7 +381,12 @@ export default function App() {
             ))}
           </div>
           <p style={{ fontSize: 18, fontWeight: 700, color: GL, marginBottom: 8, animation: "fadeIn .4s both" }}>{loadingMsg}</p>
-          <p style={{ fontSize: 13, color: "#666" }}>Generando canciones con IA...</p>
+          <p style={{ fontSize: 15, color: "#999", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>Generando canciones... {loadingProgress}/150</p>
+          {loadingProgress > 0 && (
+            <div style={{ width: "80%", maxWidth: 300, height: 4, background: "rgba(255,255,255,.08)", borderRadius: 2, marginTop: 12, overflow: "hidden" }}>
+              <div style={{ width: `${(loadingProgress / 150) * 100}%`, height: "100%", background: `linear-gradient(90deg,${G},${GL})`, transition: "width .4s" }} />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -333,7 +455,7 @@ export default function App() {
     const sorted = [...players].sort((a, b) => b.score - a.score);
     const finalTimeline = [...timeline].sort((a, b) => a.year - b.year);
     return (
-      <div style={S.app}><div style={S.glow} /><style>{css}</style><FloatingScoreBtn />
+      <div style={S.app}><div style={S.glow} /><style>{css}</style><FloatingBtns />
         <div style={S.wrap}>
           <div style={{ textAlign: "center", fontSize: 56, marginBottom: 8 }}>🏆</div>
           <div style={{ textAlign: "center", fontSize: "clamp(1.4rem,5vw,2.2rem)", fontWeight: 900, background: "linear-gradient(135deg,#FFD700,#FFA500)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 6 }}>{sorted[0].name}</div>
@@ -369,10 +491,10 @@ export default function App() {
   const pct = ((turnIndex + 1) / (numRounds * players.length)) * 100;
 
   return (
-    <div style={S.app}><div style={S.glow} /><style>{css}</style><FloatingScoreBtn />
+    <div style={S.app}><div style={S.glow} /><style>{css}</style><FloatingBtns />
       <div style={S.wrap}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <span style={{ fontSize: 12, color: "#666", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".12em" }}>Ronda {currentRound + 1}/{gameSongs.length}</span>
+          <span style={{ fontSize: 12, color: "#666", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".12em" }}>Ronda {currentRound + 1}/{numRounds}</span>
           <span style={{ fontSize: 12, color: G, fontWeight: 700 }}>Turno: {currentPlayer.name}</span>
         </div>
         <div style={{ width: "100%", height: 3, background: "rgba(255,255,255,.06)", borderRadius: 2, marginBottom: 20, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg,${G},${GL})`, transition: "width .5s" }} /></div>
@@ -385,7 +507,12 @@ export default function App() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
               Abrir en Spotify
             </a>
-            <div style={{ marginTop: 24 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={() => setPhase("play")}>Ya escuché → Adivinar</button></div>
+            <div style={{ marginTop: 16 }}>
+              <button onClick={handleSkipSong} disabled={!canSkipSong} style={{ padding: "10px 20px", minHeight: 44, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 50, color: canSkipSong ? "#aaa" : "#444", fontSize: 13, fontWeight: 600, cursor: canSkipSong ? "pointer" : "not-allowed", opacity: canSkipSong ? 1 : .4, WebkitAppearance: "none" }} title={canSkipSong ? "Cambiar a otra canción" : "No quedan canciones disponibles"}>
+                🔀 Cambiar canción
+              </button>
+            </div>
+            <div style={{ marginTop: 16 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={() => setPhase("play")}>Ya escuché → Adivinar</button></div>
           </div>
         )}
 
@@ -459,11 +586,15 @@ export default function App() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={S.tag(artistCorrect && timelineCorrect)}>{artistCorrect ? "✓" : "✗"} Artista{artistCorrect && !timelineCorrect && <span style={{ fontSize: 10, marginLeft: 4, opacity: .7 }}>(no suma)</span>}</span><span style={{ fontSize: 14, fontWeight: 800, color: (artistCorrect && timelineCorrect) ? GL : "#ff6b81" }}>{artistCorrect && timelineCorrect ? "+⅙" : "0"}</span></div>
             </div>
             {!timelineCorrect && timelineCorrect !== null && (<div style={{ textAlign: "center", padding: "8px 12px", background: "rgba(255,71,87,.08)", borderRadius: 10, marginBottom: 12, border: "1px solid rgba(255,71,87,.15)" }}><p style={{ margin: 0, fontSize: 12, color: "#ff6b81" }}>✗ Timeline incorrecto → no se suman puntos por canción ni artista</p></div>)}
-            <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 12, padding: 14, textAlign: "center", marginBottom: 16 }}>
-              <p style={{ margin: 0, fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>La canción era</p>
-              <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#fff" }}>{currentSong.song}</p>
-              <p style={{ margin: 0, fontSize: 14, color: G, fontWeight: 600 }}>{currentSong.artist}</p>
-              <p style={{ margin: 0, fontSize: 13, color: "#888", marginTop: 2 }}>{currentSong.year}</p>
+            <div style={{ background: "rgba(255,255,255,.05)", borderRadius: 14, padding: "18px 16px", textAlign: "center", marginBottom: 16, border: "1px solid rgba(255,255,255,.08)" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 10 }}>La canción era</p>
+              <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#fff" }}>🎵 {currentSong.song}</p>
+              <p style={{ margin: "6px 0 0", fontSize: 16, color: G, fontWeight: 700 }}>🎤 {currentSong.artist}</p>
+              <p style={{ margin: "4px 0 0", fontSize: 14, color: "#999", fontWeight: 600 }}>📅 {currentSong.year}</p>
+              <a href={spotifyLink} onClick={openSpotify} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "10px 24px", minHeight: 44, background: G, color: "#000", borderRadius: 50, fontSize: 13, fontWeight: 800, textDecoration: "none", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                Escuchar en Spotify
+              </a>
             </div>
             <div style={{ marginBottom: 16 }}>
               <span style={S.label}>Timeline actualizado</span>
