@@ -89,7 +89,7 @@ function ScoreboardModal({ players, onClose }) {
       <div style={{ position: "relative", background: "#141418", border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: "28px 24px", maxWidth: 400, width: "100%", maxHeight: "80vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 14, color: G, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>🏆 Tabla de posiciones</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 22, cursor: "pointer", padding: "4px 8px", lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 24, cursor: "pointer", padding: "8px 12px", minWidth: 44, minHeight: 44, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         {sorted.map((p, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", marginBottom: 6, background: i === 0 ? "rgba(29,185,84,.1)" : "rgba(255,255,255,.03)", border: i === 0 ? "1px solid rgba(29,185,84,.25)" : "1px solid rgba(255,255,255,.06)", borderRadius: 12 }}>
@@ -182,7 +182,7 @@ export default function App() {
   const resetGame = () => { setPlayers(players.map(p => ({ ...p, score: 0 }))); setSongPool([]); setScreen("config"); };
 
   const h1 = animPhase % 360, h2 = (animPhase + 120) % 360;
-  const css = `@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(29,185,84,.3)}50%{box-shadow:0 0 32px rgba(29,185,84,.5)}}@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}@keyframes highlightPulse{0%,100%{background:rgba(29,185,84,.15)}50%{background:rgba(29,185,84,.3)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes barBounce{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}input:focus{border-color:${G}!important}button:active{transform:scale(.97)!important}::selection{background:${G};color:#000}*{box-sizing:border-box}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}`;
+  const css = `@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(29,185,84,.3)}50%{box-shadow:0 0 32px rgba(29,185,84,.5)}}@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}@keyframes highlightPulse{0%,100%{background:rgba(29,185,84,.15)}50%{background:rgba(29,185,84,.3)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes barBounce{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}input:focus{border-color:${G}!important}button:active{transform:scale(.97)!important}::selection{background:${G};color:#000}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation;cursor:pointer}input{touch-action:manipulation}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}`;
 
   const S = {
     app: { minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI',system-ui,sans-serif", color: "#f0f0f0", position: "relative" },
@@ -190,13 +190,13 @@ export default function App() {
     wrap: { position: "relative", zIndex: 1, maxWidth: 720, margin: "0 auto", padding: "20px 16px", paddingBottom: 80 },
     card: { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 16, padding: "24px 20px", marginBottom: 16, backdropFilter: "blur(20px)" },
     label: { fontSize: 12, color: G, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", marginBottom: 8, display: "block" },
-    input: { width: "100%", padding: "12px 16px", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, color: "#fff", fontSize: 16, outline: "none", boxSizing: "border-box" },
-    btn: (bg, col) => ({ padding: "12px 28px", background: bg, color: col, border: "none", borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: ".04em", textTransform: "uppercase", transition: "all .15s" }),
-    btnO: (active, color) => ({ padding: "10px 20px", background: active ? `${color}22` : "rgba(255,255,255,.04)", color: active ? color : "#666", border: `2px solid ${active ? color : "rgba(255,255,255,.1)"}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all .15s" }),
-    chip: { display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", background: "rgba(29,185,84,.1)", border: "1px solid rgba(29,185,84,.25)", borderRadius: 50, margin: 4, fontSize: 14, fontWeight: 600 },
-    tag: (ok) => ({ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 50, fontSize: 12, fontWeight: 700, background: ok ? "rgba(29,185,84,.15)" : "rgba(255,71,87,.15)", color: ok ? GL : "#ff6b81", border: `1px solid ${ok ? "rgba(29,185,84,.3)" : "rgba(255,71,87,.3)"}` }),
-    fab: { position: "fixed", bottom: 20, right: 20, zIndex: 900, width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg,${G},${GL})`, color: "#000", border: "none", fontSize: 22, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,185,84,.4)" },
-    toggle: (active) => ({ padding: "8px 16px", background: active ? "rgba(29,185,84,.18)" : "rgba(255,255,255,.04)", color: active ? GL : "#777", border: `1.5px solid ${active ? G : "rgba(255,255,255,.1)"}`, borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s", margin: 3 }),
+    input: { width: "100%", padding: "14px 16px", minHeight: 48, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, color: "#fff", fontSize: 16, outline: "none", boxSizing: "border-box", WebkitAppearance: "none" },
+    btn: (bg, col) => ({ padding: "14px 28px", minHeight: 48, background: bg, color: col, border: "none", borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: ".04em", textTransform: "uppercase", transition: "all .15s", WebkitAppearance: "none" }),
+    btnO: (active, color) => ({ padding: "12px 20px", minHeight: 44, background: active ? `${color}22` : "rgba(255,255,255,.04)", color: active ? color : "#666", border: `2px solid ${active ? color : "rgba(255,255,255,.1)"}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all .15s", WebkitAppearance: "none" }),
+    chip: { display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", minHeight: 40, background: "rgba(29,185,84,.1)", border: "1px solid rgba(29,185,84,.25)", borderRadius: 50, margin: 4, fontSize: 14, fontWeight: 600 },
+    tag: (ok) => ({ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 50, fontSize: 12, fontWeight: 700, background: ok ? "rgba(29,185,84,.15)" : "rgba(255,71,87,.15)", color: ok ? GL : "#ff6b81", border: `1px solid ${ok ? "rgba(29,185,84,.3)" : "rgba(255,71,87,.3)"}` }),
+    fab: { position: "fixed", bottom: 20, right: 20, zIndex: 900, width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg,${G},${GL})`, color: "#000", border: "none", fontSize: 22, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,185,84,.4)", WebkitAppearance: "none" },
+    toggle: (active) => ({ padding: "10px 16px", minHeight: 44, background: active ? "rgba(29,185,84,.18)" : "rgba(255,255,255,.04)", color: active ? GL : "#777", border: `1.5px solid ${active ? G : "rgba(255,255,255,.1)"}`, borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s", margin: 3, WebkitAppearance: "none" }),
   };
 
   const FloatingScoreBtn = () => (<>{screen !== "home" && screen !== "config" && screen !== "loading" && <button style={S.fab} onClick={() => setShowScoreboard(true)}>🏆</button>}{showScoreboard && <ScoreboardModal players={players} onClose={() => setShowScoreboard(false)} />}</>);
@@ -306,7 +306,7 @@ export default function App() {
               <button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={addPlayer}>+</button>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {players.map((p, i) => (<div key={i} style={S.chip}>{p.name}<button style={{ background: "none", border: "none", color: "#ff4757", cursor: "pointer", fontSize: 16, padding: "2px 6px", lineHeight: 1 }} onClick={() => removePlayer(i)}>×</button></div>))}
+              {players.map((p, i) => (<div key={i} style={S.chip}>{p.name}<button style={{ background: "none", border: "none", color: "#ff4757", cursor: "pointer", fontSize: 18, padding: "4px 8px", minWidth: 32, minHeight: 32, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => removePlayer(i)}>×</button></div>))}
               {!players.length && <span style={{ fontSize: 12, color: "#555", padding: 6 }}>Agregá al menos un jugador</span>}
             </div>
           </div>
@@ -352,11 +352,10 @@ export default function App() {
             <div style={{ position: "relative", paddingLeft: 20 }}>
               <div style={{ position: "absolute", left: 8, top: 0, bottom: 0, width: 2, background: `linear-gradient(180deg,${G},rgba(29,185,84,.2))` }} />
               {finalTimeline.map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", animation: `slideIn .4s ${i * .05}s both`, position: "relative" }}>
-                  <div style={{ position: "absolute", left: -16, width: 10, height: 10, borderRadius: "50%", background: G, border: `2px solid ${DARK}` }} />
-                  <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums" }}>{s.year}</span>
-                  <span style={{ fontSize: 13, color: "#ccc" }}>{s.song}</span>
-                  <span style={{ fontSize: 11, color: "#666" }}>– {s.artist}</span>
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 0", animation: `slideIn .4s ${i * .05}s both`, position: "relative", flexWrap: "wrap" }}>
+                  <div style={{ position: "absolute", left: -16, top: 14, width: 10, height: 10, borderRadius: "50%", background: G, border: `2px solid ${DARK}` }} />
+                  <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.year}</span>
+                  <span style={{ fontSize: 13, color: "#ccc", flex: 1, minWidth: 0, wordBreak: "break-word" }}>{s.song} <span style={{ fontSize: 11, color: "#666" }}>– {s.artist}</span></span>
                 </div>
               ))}
             </div>
@@ -382,7 +381,7 @@ export default function App() {
           <div style={{ ...S.card, textAlign: "center", animation: "fadeIn .4s both" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🎧</div>
             <p style={{ color: "#aaa", fontSize: 14, marginBottom: 20 }}>{currentPlayer.name}, abrí la canción en Spotify y escuchá</p>
-            <a href={spotifyLink} onClick={openSpotify} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "14px 32px", background: G, color: "#000", borderRadius: 50, fontSize: 16, fontWeight: 800, textDecoration: "none", textTransform: "uppercase", letterSpacing: ".06em", animation: "glow 2s infinite" }}>
+            <a href={spotifyLink} onClick={openSpotify} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "16px 32px", minHeight: 52, width: "100%", maxWidth: 320, background: G, color: "#000", borderRadius: 50, fontSize: 16, fontWeight: 800, textDecoration: "none", textTransform: "uppercase", letterSpacing: ".06em", animation: "glow 2s infinite" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
               Abrir en Spotify
             </a>
@@ -399,15 +398,15 @@ export default function App() {
                 <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 12, padding: 14 }}>
                   <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, fontWeight: 600, textAlign: "center" }}>Canción</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setSongCorrect(true)} style={{ ...S.btnO(songCorrect === true, GL), flex: 1, textAlign: "center", padding: "10px 6px", fontSize: 13 }}>✓</button>
-                    <button onClick={() => setSongCorrect(false)} style={{ ...S.btnO(songCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "10px 6px", fontSize: 13 }}>✗</button>
+                    <button onClick={() => setSongCorrect(true)} style={{ ...S.btnO(songCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
+                    <button onClick={() => setSongCorrect(false)} style={{ ...S.btnO(songCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
                   </div>
                 </div>
                 <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 12, padding: 14 }}>
                   <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, fontWeight: 600, textAlign: "center" }}>Artista</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setArtistCorrect(true)} style={{ ...S.btnO(artistCorrect === true, GL), flex: 1, textAlign: "center", padding: "10px 6px", fontSize: 13 }}>✓</button>
-                    <button onClick={() => setArtistCorrect(false)} style={{ ...S.btnO(artistCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "10px 6px", fontSize: 13 }}>✗</button>
+                    <button onClick={() => setArtistCorrect(true)} style={{ ...S.btnO(artistCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
+                    <button onClick={() => setArtistCorrect(false)} style={{ ...S.btnO(artistCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
                   </div>
                 </div>
               </div>
@@ -421,19 +420,18 @@ export default function App() {
                   <p style={{ fontSize: 12, color: "#666", marginTop: 0, marginBottom: 14 }}>{currentPlayer.name}: elegí dónde ubicarla</p>
                   <div style={{ position: "relative", paddingLeft: 24 }}>
                     <div style={{ position: "absolute", left: 12, top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,.08)" }} />
-                    <button onClick={() => setSelectedSlot(0)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 14px", marginBottom: 4, background: selectedSlot === 0 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === 0 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === 0 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
+                    <button onClick={() => setSelectedSlot(0)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === 0 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === 0 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === 0 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
                       <div style={{ position: "absolute", left: -18, width: 8, height: 8, borderRadius: "50%", background: selectedSlot === 0 ? G : "rgba(255,255,255,.15)" }} />
                       {selectedSlot === 0 ? "▶ Aquí (antes de todo)" : "↑ Antes de todo"}
                     </button>
                     {sortedTimeline.map((s, i) => (
                       <div key={s.id}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", position: "relative" }}>
-                          <div style={{ position: "absolute", left: -18, width: 10, height: 10, borderRadius: "50%", background: G, border: `2px solid ${DARK}` }} />
-                          <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums" }}>{s.year}</span>
-                          <span style={{ fontSize: 13, color: "#ccc" }}>{s.song}</span>
-                          <span style={{ fontSize: 11, color: "#666" }}>– {s.artist}</span>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", position: "relative" }}>
+                          <div style={{ position: "absolute", left: -18, top: 14, width: 10, height: 10, borderRadius: "50%", background: G, border: `2px solid ${DARK}` }} />
+                          <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.year}</span>
+                          <span style={{ fontSize: 13, color: "#ccc", flex: 1, minWidth: 0, wordBreak: "break-word" }}>{s.song} <span style={{ fontSize: 11, color: "#666" }}>– {s.artist}</span></span>
                         </div>
-                        <button onClick={() => setSelectedSlot(i + 1)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 14px", marginBottom: 4, background: selectedSlot === i + 1 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === i + 1 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === i + 1 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
+                        <button onClick={() => setSelectedSlot(i + 1)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === i + 1 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === i + 1 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === i + 1 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
                           <div style={{ position: "absolute", left: -18, width: 8, height: 8, borderRadius: "50%", background: selectedSlot === i + 1 ? G : "rgba(255,255,255,.15)" }} />
                           {selectedSlot === i + 1 ? "▶ Aquí" : i + 1 < sortedTimeline.length ? `↕ Entre ${s.year} y ${sortedTimeline[i + 1].year}` : `↓ Después de ${s.year}`}
                         </button>
@@ -474,12 +472,11 @@ export default function App() {
                 {[...timeline].sort((a, b) => a.year - b.year).map((s, i) => {
                   const isNew = s.id === justPlaced;
                   return (
-                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", position: "relative", background: isNew ? "rgba(29,185,84,.1)" : "transparent", borderRadius: 8, animation: isNew ? "highlightPulse 1.5s ease 2" : `slideIn .3s ${i * .05}s both`, border: isNew ? "1px solid rgba(29,185,84,.25)" : "1px solid transparent", marginBottom: 2 }}>
-                      <div style={{ position: "absolute", left: -18, width: 10, height: 10, borderRadius: "50%", background: isNew ? "#fff" : G, border: `2px solid ${DARK}`, boxShadow: isNew ? `0 0 8px ${G}` : "none" }} />
-                      <span style={{ fontWeight: 800, fontSize: 13, color: isNew ? "#fff" : GL, minWidth: 36, fontVariantNumeric: "tabular-nums" }}>{s.year}</span>
-                      <span style={{ fontSize: 12, color: isNew ? "#fff" : "#ccc", fontWeight: isNew ? 700 : 400 }}>{s.song}</span>
-                      <span style={{ fontSize: 10, color: isNew ? "rgba(255,255,255,.7)" : "#666" }}>– {s.artist}</span>
-                      {isNew && <span style={{ fontSize: 9, color: G, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", marginLeft: "auto", whiteSpace: "nowrap" }}>NUEVA</span>}
+                    <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", position: "relative", background: isNew ? "rgba(29,185,84,.1)" : "transparent", borderRadius: 8, animation: isNew ? "highlightPulse 1.5s ease 2" : `slideIn .3s ${i * .05}s both`, border: isNew ? "1px solid rgba(29,185,84,.25)" : "1px solid transparent", marginBottom: 2, flexWrap: "wrap" }}>
+                      <div style={{ position: "absolute", left: -18, top: 14, width: 10, height: 10, borderRadius: "50%", background: isNew ? "#fff" : G, border: `2px solid ${DARK}`, boxShadow: isNew ? `0 0 8px ${G}` : "none" }} />
+                      <span style={{ fontWeight: 800, fontSize: 13, color: isNew ? "#fff" : GL, minWidth: 36, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.year}</span>
+                      <span style={{ fontSize: 12, color: isNew ? "#fff" : "#ccc", fontWeight: isNew ? 700 : 400, wordBreak: "break-word", flex: 1, minWidth: 0 }}>{s.song} <span style={{ fontSize: 10, color: isNew ? "rgba(255,255,255,.7)" : "#666" }}>– {s.artist}</span></span>
+                      {isNew && <span style={{ fontSize: 9, color: G, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", flexShrink: 0 }}>NUEVA</span>}
                     </div>
                   );
                 })}
