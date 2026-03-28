@@ -332,8 +332,8 @@ export default function App() {
     <>
       {screen !== "home" && screen !== "config" && screen !== "loading" && (
         <>
-          <button style={{ ...S.fab, right: 20, background: `linear-gradient(135deg,${G},${GL})`, color: "#000", boxShadow: "0 4px 20px rgba(29,185,84,.4)" }} onClick={() => setShowScoreboard(true)}>🏆</button>
-          <button style={{ ...S.fab, right: 84, background: "rgba(255,255,255,.08)", color: "#aaa", boxShadow: "0 2px 12px rgba(0,0,0,.3)", border: "1px solid rgba(255,255,255,.1)" }} onClick={handleResetClick}>🔄</button>
+          <button style={{ ...S.fab, right: 16, background: `linear-gradient(135deg,${G},${GL})`, color: "#000", boxShadow: "0 4px 20px rgba(29,185,84,.4)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 800, textTransform: "uppercase" }} onClick={() => setShowScoreboard(true)}>Tabla de puntos</button>
+          <button style={{ ...S.fab, left: 16, background: "rgba(255,255,255,.08)", color: "#aaa", boxShadow: "0 2px 12px rgba(0,0,0,.3)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 700 }} onClick={handleResetClick}>Reiniciar juego</button>
         </>
       )}
       {showScoreboard && <ScoreboardModal players={players} onClose={() => setShowScoreboard(false)} />}
@@ -452,7 +452,7 @@ export default function App() {
             </div>
           </div>
           <div style={S.card}>
-            <span style={S.label}>Rondas</span>
+            <span style={S.label}>Rondas por jugador</span>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {roundOptions.map(n => (<button key={n} onClick={() => setNumRounds(n)} style={S.btnO(numRounds === n, G)}>{n}</button>))}
             </div>
