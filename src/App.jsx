@@ -91,6 +91,14 @@ Responde SOLAMENTE con un JSON array válido, sin markdown, sin backticks, sin t
 
 const G = "#1DB954", GL = "#1ed760", DARK = "#0a0a0f";
 
+const tap = (fn) => {
+  let touched = false;
+  return {
+    onTouchEnd: (e) => { e.preventDefault(); touched = true; fn(e); },
+    onClick: (e) => { if (!touched) fn(e); touched = false; },
+  };
+};
+
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onCancel}>
@@ -98,8 +106,8 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
       <div style={{ position: "relative", background: "#141418", border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
         <p style={{ margin: "0 0 24px", fontSize: 15, color: "#ccc", lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, color: "#aaa", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Cancelar</button>
-          <button onClick={onConfirm} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "#ff4757", border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Sí, reiniciar</button>
+          <button {...tap(onCancel)} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, color: "#aaa", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Cancelar</button>
+          <button {...tap(onConfirm)} style={{ flex: 1, padding: "14px 16px", minHeight: 48, background: "#ff4757", border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }}>Sí, reiniciar</button>
         </div>
       </div>
     </div>
@@ -109,12 +117,12 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 function ScoreboardModal({ players, onClose }) {
   const sorted = [...players].sort((a, b) => b.score - a.score);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} {...tap(onClose)}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)" }} />
       <div style={{ position: "relative", background: "#141418", border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: "28px 24px", maxWidth: 400, width: "100%", maxHeight: "80vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 14, color: G, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em" }}>🏆 Tabla de posiciones</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 24, cursor: "pointer", padding: "8px 12px", minWidth: 44, minHeight: 44, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          <button {...tap(onClose)} style={{ background: "none", border: "none", color: "#666", fontSize: 24, cursor: "pointer", padding: "8px 12px", minWidth: 44, minHeight: 44, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         {sorted.map((p, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", marginBottom: 6, background: i === 0 ? "rgba(29,185,84,.1)" : "rgba(255,255,255,.03)", border: i === 0 ? "1px solid rgba(29,185,84,.25)" : "1px solid rgba(255,255,255,.06)", borderRadius: 12 }}>
@@ -311,7 +319,7 @@ export default function App() {
   const handleResetClick = () => setShowResetConfirm(true);
 
   const h1 = animPhase % 360, h2 = (animPhase + 120) % 360;
-  const css = `@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(29,185,84,.3)}50%{box-shadow:0 0 32px rgba(29,185,84,.5)}}@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}@keyframes highlightPulse{0%,100%{background:rgba(29,185,84,.15)}50%{background:rgba(29,185,84,.3)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes barBounce{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}input:focus{border-color:${G}!important}button,a{-webkit-user-select:none;user-select:none}::selection{background:${G};color:#000}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation;cursor:pointer}input{touch-action:manipulation}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}`;
+  const css = `@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(29,185,84,.3)}50%{box-shadow:0 0 32px rgba(29,185,84,.5)}}@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}@keyframes highlightPulse{0%,100%{background:rgba(29,185,84,.15)}50%{background:rgba(29,185,84,.3)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes barBounce{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}input:focus{border-color:${G}!important}::selection{background:${G};color:#000}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}button,a,input,[role=button]{touch-action:manipulation;-webkit-user-select:none;user-select:none;cursor:pointer}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}`;
 
   const S = {
     app: { minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI',system-ui,sans-serif", color: "#f0f0f0", position: "relative" },
@@ -320,20 +328,20 @@ export default function App() {
     card: { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 16, padding: "24px 20px", marginBottom: 16, backdropFilter: "blur(20px)" },
     label: { fontSize: 12, color: G, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", marginBottom: 8, display: "block" },
     input: { width: "100%", padding: "14px 16px", minHeight: 48, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, color: "#fff", fontSize: 16, outline: "none", boxSizing: "border-box", WebkitAppearance: "none" },
-    btn: (bg, col) => ({ padding: "14px 28px", minHeight: 48, background: bg, color: col, border: "none", borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: ".04em", textTransform: "uppercase", transition: "all .15s", WebkitAppearance: "none" }),
-    btnO: (active, color) => ({ padding: "12px 20px", minHeight: 44, background: active ? `${color}22` : "rgba(255,255,255,.04)", color: active ? color : "#666", border: `2px solid ${active ? color : "rgba(255,255,255,.1)"}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all .15s", WebkitAppearance: "none" }),
+    btn: (bg, col) => ({ padding: "14px 28px", minHeight: 48, background: bg, color: col, border: "none", borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: ".04em", textTransform: "uppercase", WebkitAppearance: "none" }),
+    btnO: (active, color) => ({ padding: "12px 20px", minHeight: 44, background: active ? `${color}22` : "rgba(255,255,255,.04)", color: active ? color : "#666", border: `2px solid ${active ? color : "rgba(255,255,255,.1)"}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitAppearance: "none" }),
     chip: { display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", minHeight: 40, background: "rgba(29,185,84,.1)", border: "1px solid rgba(29,185,84,.25)", borderRadius: 50, margin: 4, fontSize: 14, fontWeight: 600 },
     tag: (ok) => ({ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 50, fontSize: 12, fontWeight: 700, background: ok ? "rgba(29,185,84,.15)" : "rgba(255,71,87,.15)", color: ok ? GL : "#ff6b81", border: `1px solid ${ok ? "rgba(29,185,84,.3)" : "rgba(255,71,87,.3)"}` }),
     fab: { position: "fixed", bottom: 20, zIndex: 900, width: 56, height: 56, borderRadius: "50%", border: "none", fontSize: 22, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", WebkitAppearance: "none" },
-    toggle: (active) => ({ padding: "10px 16px", minHeight: 44, background: active ? "rgba(29,185,84,.18)" : "rgba(255,255,255,.04)", color: active ? GL : "#777", border: `1.5px solid ${active ? G : "rgba(255,255,255,.1)"}`, borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .15s", margin: 3, WebkitAppearance: "none" }),
+    toggle: (active) => ({ padding: "10px 16px", minHeight: 44, background: active ? "rgba(29,185,84,.18)" : "rgba(255,255,255,.04)", color: active ? GL : "#777", border: `1.5px solid ${active ? G : "rgba(255,255,255,.1)"}`, borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: "pointer", margin: 3, WebkitAppearance: "none" }),
   };
 
   const FloatingBtns = () => (
     <>
       {screen !== "home" && screen !== "config" && screen !== "loading" && (
         <>
-          <button style={{ ...S.fab, right: 16, background: `linear-gradient(135deg,${G},${GL})`, color: "#000", boxShadow: "0 4px 20px rgba(29,185,84,.4)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 800, textTransform: "uppercase" }} onClick={() => setShowScoreboard(true)}>Tabla de puntos</button>
-          <button style={{ ...S.fab, left: 16, background: "rgba(255,255,255,.08)", color: "#aaa", boxShadow: "0 2px 12px rgba(0,0,0,.3)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 700 }} onClick={handleResetClick}>Reiniciar juego</button>
+          <button style={{ ...S.fab, right: 16, background: `linear-gradient(135deg,${G},${GL})`, color: "#000", boxShadow: "0 4px 20px rgba(29,185,84,.4)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 800, textTransform: "uppercase" }} {...tap(() => setShowScoreboard(true))}>Tabla de puntos</button>
+          <button style={{ ...S.fab, left: 16, background: "rgba(255,255,255,.08)", color: "#aaa", boxShadow: "0 2px 12px rgba(0,0,0,.3)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 28, width: "auto", padding: "0 18px", fontSize: 12, letterSpacing: ".04em", fontWeight: 700 }} {...tap(handleResetClick)}>Reiniciar juego</button>
         </>
       )}
       {showScoreboard && <ScoreboardModal players={players} onClose={() => setShowScoreboard(false)} />}
@@ -353,7 +361,7 @@ export default function App() {
           {genError && (
             <div style={{ padding: "14px 18px", background: "rgba(255,71,87,.1)", border: "1px solid rgba(255,71,87,.25)", borderRadius: 12, marginBottom: 16, animation: "fadeIn .3s both" }}>
               <p style={{ margin: 0, fontSize: 13, color: "#ff6b81" }}>Error al generar canciones: {genError}</p>
-              <button onClick={handleGenerate} style={{ ...S.btn(G, "#000"), marginTop: 10, padding: "8px 20px", fontSize: 13 }}>Reintentar</button>
+              <button {...tap(handleGenerate)} style={{ ...S.btn(G, "#000"), marginTop: 10, padding: "8px 20px", fontSize: 13 }}>Reintentar</button>
             </div>
           )}
 
@@ -361,7 +369,7 @@ export default function App() {
             <span style={S.label}>Géneros (mínimo 1)</span>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
               {GENRES.map(g => (
-                <button key={g} onClick={() => toggleGenre(g)} style={S.toggle(selectedGenres.includes(g))}>
+                <button key={g} {...tap(() => toggleGenre(g))} style={S.toggle(selectedGenres.includes(g))}>
                   {selectedGenres.includes(g) ? "✓ " : ""}{g}
                 </button>
               ))}
@@ -372,7 +380,7 @@ export default function App() {
             <span style={S.label}>Continentes / Países (mínimo 1)</span>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
               {CONTINENTS.map(c => (
-                <button key={c} onClick={() => toggleContinent(c)} style={S.toggle(selectedContinents.includes(c))}>
+                <button key={c} {...tap(() => toggleContinent(c))} style={S.toggle(selectedContinents.includes(c))}>
                   {selectedContinents.includes(c) ? "✓ " : ""}{c}
                 </button>
               ))}
@@ -385,7 +393,7 @@ export default function App() {
           </div>
 
           <div style={{ textAlign: "center", marginTop: 24 }}>
-            <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "16px 48px", fontSize: 17, opacity: canGenerate ? 1 : .4, cursor: canGenerate ? "pointer" : "not-allowed" }} onClick={handleGenerate} disabled={!canGenerate}>
+            <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "16px 48px", fontSize: 17, opacity: canGenerate ? 1 : .4, cursor: canGenerate ? "pointer" : "not-allowed" }} {...tap(handleGenerate)} disabled={!canGenerate}>
               Generar Playlist →
             </button>
           </div>
@@ -444,21 +452,21 @@ export default function App() {
             <span style={S.label}>Jugadores (máx. 8)</span>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <input style={{ ...S.input, flex: 1 }} placeholder="Nombre..." value={playerInput} onChange={e => setPlayerInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlayer()} maxLength={16} />
-              <button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={addPlayer}>+</button>
+              <button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} {...tap(addPlayer)}>+</button>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {players.map((p, i) => (<div key={i} style={S.chip}>{p.name}<button style={{ background: "none", border: "none", color: "#ff4757", cursor: "pointer", fontSize: 18, padding: "4px 8px", minWidth: 32, minHeight: 32, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => removePlayer(i)}>×</button></div>))}
+              {players.map((p, i) => (<div key={i} style={S.chip}>{p.name}<button style={{ background: "none", border: "none", color: "#ff4757", cursor: "pointer", fontSize: 18, padding: "4px 8px", minWidth: 32, minHeight: 32, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} {...tap(() => removePlayer(i))}>×</button></div>))}
               {!players.length && <span style={{ fontSize: 12, color: "#555", padding: 6 }}>Agregá al menos un jugador</span>}
             </div>
           </div>
           <div style={S.card}>
             <span style={S.label}>Rondas por jugador</span>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {roundOptions.map(n => (<button key={n} onClick={() => setNumRounds(n)} style={S.btnO(numRounds === n, G)}>{n}</button>))}
+              {roundOptions.map(n => (<button key={n} {...tap(() => setNumRounds(n))} style={S.btnO(numRounds === n, G)}>{n}</button>))}
             </div>
           </div>
           <div style={{ textAlign: "center", marginTop: 24 }}>
-            <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "16px 48px", fontSize: 17, opacity: players.length < 1 ? .4 : 1, cursor: players.length < 1 ? "not-allowed" : "pointer" }} onClick={startGame} disabled={players.length < 1}>Comenzar</button>
+            <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "16px 48px", fontSize: 17, opacity: players.length < 1 ? .4 : 1, cursor: players.length < 1 ? "not-allowed" : "pointer" }} {...tap(startGame)} disabled={players.length < 1}>Comenzar</button>
           </div>
           <div style={{ marginTop: 28, padding: 16, background: "rgba(255,255,255,.02)", borderRadius: 10, border: "1px solid rgba(255,255,255,.04)" }}>
             <p style={{ fontSize: 12, color: "#555", textAlign: "center", margin: 0, lineHeight: 1.7 }}>
@@ -501,7 +509,7 @@ export default function App() {
               ))}
             </div>
           </div>
-          <div style={{ textAlign: "center", marginTop: 20 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={resetGame}>Jugar de Nuevo</button></div>
+          <div style={{ textAlign: "center", marginTop: 20 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} {...tap(resetGame)}>Jugar de Nuevo</button></div>
         </div>
       </div>
     );
@@ -532,11 +540,11 @@ export default function App() {
               Abrir en Spotify
             </a>
             <div style={{ marginTop: 16 }}>
-              <button onClick={handleSkipSong} disabled={!canSkipSong} style={{ padding: "10px 20px", minHeight: 44, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 50, color: canSkipSong ? "#aaa" : "#444", fontSize: 13, fontWeight: 600, cursor: canSkipSong ? "pointer" : "not-allowed", opacity: canSkipSong ? 1 : .4, WebkitAppearance: "none" }} title={canSkipSong ? "Cambiar a otra canción" : "No quedan canciones disponibles"}>
+              <button {...tap(handleSkipSong)} disabled={!canSkipSong} style={{ padding: "10px 20px", minHeight: 44, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 50, color: canSkipSong ? "#aaa" : "#444", fontSize: 13, fontWeight: 600, cursor: canSkipSong ? "pointer" : "not-allowed", opacity: canSkipSong ? 1 : .4, WebkitAppearance: "none" }} title={canSkipSong ? "Cambiar a otra canción" : "No quedan canciones disponibles"}>
                 🔀 Cambiar canción
               </button>
             </div>
-            <div style={{ marginTop: 16 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={() => setPhase("play")}>Ya escuché → Adivinar</button></div>
+            <div style={{ marginTop: 16 }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} {...tap(() => setPhase("play"))}>Ya escuché → Adivinar</button></div>
           </div>
         )}
 
@@ -549,15 +557,15 @@ export default function App() {
                 <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 12, padding: 14 }}>
                   <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, fontWeight: 600, textAlign: "center" }}>Canción</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setSongCorrect(true)} style={{ ...S.btnO(songCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
-                    <button onClick={() => setSongCorrect(false)} style={{ ...S.btnO(songCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
+                    <button {...tap(() => setSongCorrect(true))} style={{ ...S.btnO(songCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
+                    <button {...tap(() => setSongCorrect(false))} style={{ ...S.btnO(songCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
                   </div>
                 </div>
                 <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 12, padding: 14 }}>
                   <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, fontWeight: 600, textAlign: "center" }}>Artista</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setArtistCorrect(true)} style={{ ...S.btnO(artistCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
-                    <button onClick={() => setArtistCorrect(false)} style={{ ...S.btnO(artistCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
+                    <button {...tap(() => setArtistCorrect(true))} style={{ ...S.btnO(artistCorrect === true, GL), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✓</button>
+                    <button {...tap(() => setArtistCorrect(false))} style={{ ...S.btnO(artistCorrect === false, "#ff4757"), flex: 1, textAlign: "center", padding: "12px 6px", fontSize: 15, minHeight: 44 }}>✗</button>
                   </div>
                 </div>
               </div>
@@ -571,7 +579,7 @@ export default function App() {
                   <p style={{ fontSize: 12, color: "#666", marginTop: 0, marginBottom: 14 }}>{currentPlayer.name}: elegí dónde ubicarla</p>
                   <div style={{ position: "relative", paddingLeft: 24 }}>
                     <div style={{ position: "absolute", left: 12, top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,.08)" }} />
-                    <button onClick={() => setSelectedSlot(0)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === 0 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === 0 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === 0 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
+                    <button {...tap(() => setSelectedSlot(0))} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === 0 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === 0 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === 0 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
                       <div style={{ position: "absolute", left: -18, width: 8, height: 8, borderRadius: "50%", background: selectedSlot === 0 ? G : "rgba(255,255,255,.15)" }} />
                       {selectedSlot === 0 ? "▶ Aquí (antes de todo)" : "↑ Antes de todo"}
                     </button>
@@ -582,7 +590,7 @@ export default function App() {
                           <span style={{ fontWeight: 800, fontSize: 14, color: GL, minWidth: 40, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.year}</span>
                           <span style={{ fontSize: 13, color: "#ccc", flex: 1, minWidth: 0, wordBreak: "break-word" }}>{s.song} <span style={{ fontSize: 11, color: "#666" }}>– {s.artist}</span></span>
                         </div>
-                        <button onClick={() => setSelectedSlot(i + 1)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === i + 1 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === i + 1 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === i + 1 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
+                        <button {...tap(() => setSelectedSlot(i + 1))} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 14px", marginBottom: 4, minHeight: 48, background: selectedSlot === i + 1 ? "rgba(29,185,84,.15)" : "rgba(255,255,255,.02)", border: selectedSlot === i + 1 ? `2px solid ${G}` : "2px dashed rgba(255,255,255,.1)", borderRadius: 10, cursor: "pointer", color: selectedSlot === i + 1 ? GL : "#555", fontSize: 13, fontWeight: 600, position: "relative" }}>
                           <div style={{ position: "absolute", left: -18, width: 8, height: 8, borderRadius: "50%", background: selectedSlot === i + 1 ? G : "rgba(255,255,255,.15)" }} />
                           {selectedSlot === i + 1 ? "▶ Aquí" : i + 1 < sortedTimeline.length ? `↕ Entre ${s.year} y ${sortedTimeline[i + 1].year}` : `↓ Después de ${s.year}`}
                         </button>
@@ -593,7 +601,7 @@ export default function App() {
               )}
             </div>
             <div style={{ textAlign: "center", marginTop: 4, marginBottom: 16 }}>
-              <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "14px 40px", fontSize: 16, opacity: canConfirmPlay() ? 1 : .35, cursor: canConfirmPlay() ? "pointer" : "not-allowed" }} onClick={handleConfirmPlay} disabled={!canConfirmPlay()}>Confirmar Ronda</button>
+              <button style={{ ...S.btn(`linear-gradient(135deg,${G},${GL})`, "#000"), padding: "14px 40px", fontSize: 16, opacity: canConfirmPlay() ? 1 : .35, cursor: canConfirmPlay() ? "pointer" : "not-allowed" }} {...tap(handleConfirmPlay)} disabled={!canConfirmPlay()}>Confirmar Ronda</button>
             </div>
           </div>
         )}
@@ -637,7 +645,7 @@ export default function App() {
                 })}
               </div>
             </div>
-            <div style={{ textAlign: "center" }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} onClick={nextTurn}>{currentRound >= numRounds - 1 && currentPlayerIdx >= players.length - 1 ? "🏆 Ver Resultados" : "Siguiente Turno →"}</button></div>
+            <div style={{ textAlign: "center" }}><button style={S.btn(`linear-gradient(135deg,${G},${GL})`, "#000")} {...tap(nextTurn)}>{currentRound >= numRounds - 1 && currentPlayerIdx >= players.length - 1 ? "🏆 Ver Resultados" : "Siguiente Turno →"}</button></div>
           </div>
         )}
       </div>
